@@ -6,29 +6,29 @@ You can run the script at startup or even schedule it with crontab and customize
 - Linux Install:
   - Install Python
   - This app requires `ffmpeg`, `jq`
-  ```shell
-  # Install Python...
-  # and
-  
-  sudo apt update
-  
-  sudo apt install -y ffmpeg
-  ffmpeg -version
-  # Output
-  # ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers
-  # built with gcc 13 (Ubuntu 13.2.0-23ubuntu3)
-  
-  sudo apt install -y jq
-  jq --version
-  # Output
-  # jq-1.7
-  ```
+    ```shell
+    # Install Python...
+    # and
+    
+    sudo apt update
+    
+    sudo apt install -y ffmpeg
+    ffmpeg -version
+    # Output
+    # ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers
+    # built with gcc 13 (Ubuntu 13.2.0-23ubuntu3)
+    
+    sudo apt install -y jq
+    jq --version
+    # Output
+    # jq-1.7
+    ```
 - Windows Install: ( Right now under construction )
   - Install Python
   - This app requires `ffmpeg`
-  ```shell
-  # Coming soon
-  ```
+    ```shell
+    # Coming soon
+    ```
 - Download `main.py`
 - Open `main.py` and edit stuff like the paths and converter settings etc
 - Run it with `python '/Path/To/main.py' --root '/Path/To/Video/Folder/' --interval 5'`
