@@ -3,14 +3,13 @@ import os
 from pathlib import Path
 from sys import argv
 from time import sleep
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 
 # CONFIG -> Nextcloud or basically any root folder where you store your files
 # this is the default dir if -r, --root is not defined
 ROOT_DIR = '/No/Valid/Path/'
-
-# Default update interval in seconds, every x seconds the file search is starting
-TICK_INTERVAL = 3
 
 VERIFY_CMD_LINUX = """
 #!/bin/bash
@@ -72,7 +71,8 @@ FILE_EXTENSIONS = ['.mkv', '.webm', '.flv', '.vob', '.ogg', '.ogv', '.drc', '.mn
 FILE_EXTENSION_WANTED = '.mp4'
 
 ROOT_ARG_SYN = ['-r', '--root']
-TICK_ARG_SYN = ['-i', '--interval']
+
+global video_converter
 
 
 def run_command(cmd):
@@ -126,24 +126,26 @@ class VideoConverter:
             print(convert_cmd)
             run_command(convert_cmd)
 
-    def scan_files(self):
-        some_files_match = False
-        for sub_dir, dirs, files in os.walk(ROOT_DIR):
-            for file in files:
-                file_path = os.path.join(sub_dir, file)
-                file_path = os.path.normpath(file_path)
-                file_path = os.path.normcase(file_path)
 
-                for extension in FILE_EXTENSIONS:
-                    if file_path.lower().endswith(extension):
-                        some_files_match = True
-                        self.file_action(extension, Path(file_path))
-                        break
+class FileHandler(FileSystemEventHandler):
 
-        if not some_files_match:
-            return False
+    @staticmethod
+    def on_any_event(event):
+        if event.is_directory:
+            return None
 
-        return True
+        elif event.event_type == 'created':
+            path_lower = event.src_path.lower()
+            for extension in FILE_EXTENSIONS:
+                if path_lower.endswith(extension):
+                    video_converter.file_action(extension, Path(event.src_path))
+                    break
+        elif event.event_type == 'modified':
+            path_lower = event.src_path.lower()
+            for extension in FILE_EXTENSIONS:
+                if path_lower.endswith(extension):
+                    video_converter.file_action(extension, Path(event.src_path))
+                    break
 
 
 if __name__ == '__main__':
@@ -159,29 +161,25 @@ if __name__ == '__main__':
                     if os.path.isdir(path):
                         ROOT_DIR = path
 
-            for arg in TICK_ARG_SYN:
-                if arg_lower == args[argi]:
-                    try:
-                        TICK_INTERVAL = float(args[argi + 1])
-                    except ValueError:
-                        pass
-
     ROOT_DIR = os.path.normpath(ROOT_DIR)
     ROOT_DIR = os.path.normcase(ROOT_DIR)
 
     print('Using root dir ->', ROOT_DIR)
-    print('Using Tick interval ->', TICK_INTERVAL, 'Seconds')
 
     if not os.path.isdir(ROOT_DIR):
-        print('No Valid Root Dir ->', ROOT_DIR)
+        print('No Valid Root Directory ... Please check your root path argument..., sometimes you may need to add "" or \'\' like "/Path/"')
+        err = 'err'
+        int(err)
 
-    converter = VideoConverter()
+    video_converter = VideoConverter()
+    event_handler = FileHandler()
+    observer = Observer()
+
+    observer.schedule(event_handler, ROOT_DIR, recursive=True)
+    observer.start()
     try:
         while True:
-            scan_valid = converter.scan_files()
-            if TICK_INTERVAL > 0:
-                sleep(TICK_INTERVAL)
-            elif TICK_INTERVAL < 0:
-                break
+            sleep(5)
     except KeyboardInterrupt:
-        pass
+        observer.stop()
+    observer.join()
