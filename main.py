@@ -1,13 +1,16 @@
 import platform
 import os
 from pathlib import Path
+from sys import argv
 from time import sleep
 
 
 # CONFIG -> Nextcloud or basically any root folder where you store your files
-ROOT_DIR_LINUX = '/home/flow____/Nextcloud/'
-# Would be better with a config file or through the cmd interface pushing the platform paths...
-ROOT_DIR_WINDOWS = ''
+# this is the default dir if -r, --root is not defined
+ROOT_DIR = '/No/Valid/Path/'
+
+# Default update interval in seconds, every x seconds the file search is starting
+TICK_INTERVAL = 3
 
 VERIFY_CMD_LINUX = """
 #!/bin/bash
@@ -68,83 +71,73 @@ FILE_EXTENSIONS = ['.mkv', '.webm', '.flv', '.vob', '.ogg', '.ogv', '.drc', '.mn
                    '.f4v']
 FILE_EXTENSION_WANTED = '.mp4'
 
+ROOT_ARG_SYN = ['-r', '--root']
+TICK_ARG_SYN = ['-i', '--interval']
 
-def RunCommand(cmd):
-    process = os.popen('bash -c \'{0}\''.format(cmd))
+
+def run_command(cmd):
+    if platform.system() == 'Windows':
+        process = os.popen('bash -c \'{0}\''.format(cmd))
+    else:
+        process = os.popen('bash -c \'{0}\''.format(cmd))
 
     output = process.read()
     process.close()
     return output
 
 
-def is_int(element: any) -> bool:
-    # If you expect None to be passed:
-    if element is None:
-        return False
-    try:
-        int(element)
-        return True
-    except ValueError:
-        return False
-
-
 class VideoConverter:
     def __init__(self):
         self.is_windows = platform.platform() == 'Windows'
+        self.ignore_path = os.path.join(ROOT_DIR, CONVERT_IGNORE_FOLDER)
+        self.ignore_path = os.path.normpath(self.ignore_path)
+        self.ignore_path = os.path.normcase(self.ignore_path)
+        if not os.path.isdir(self.ignore_path):
+            os.mkdir(self.ignore_path)
+        if self.is_windows:
+            self.verify_cmd = VERIFY_CMD_WINDOWS
+            self.convert_cmd = CONVERT_CMD_WINDOWS
+        else:
+            self.verify_cmd = VERIFY_CMD_LINUX
+            self.convert_cmd = CONVERT_CMD_LINUX
 
-    def FileAction(self, file_extension_current, file_path):
+    def file_action(self, file_extension_current, file_path):
         if not os.path.isfile(file_path):
             return
 
-        path_parts = os.path.normpath(file_path).split(os.path.sep)
-        for part in path_parts:
-            if CONVERT_IGNORE_FOLDER == part:
-                return
+        file_abs_path = file_path.absolute()
+        if self.ignore_path in str(file_abs_path):
+            return
 
-        file_path_resolved = Path(file_path)
-
-        file_name_current = file_path_resolved.name
+        file_name_current = file_path.name
         file_name_next = file_name_current.replace(file_extension_current, FILE_EXTENSION_WANTED)
+        file_parent_dir = file_path.parent.absolute()
 
-        file_parent_dir = file_path_resolved.parent.absolute()
-
-        if self.is_windows:
-            verify_cmd = VERIFY_CMD_WINDOWS.format(file_name_current, file_name_next, file_parent_dir, ROOT_DIR_WINDOWS)
-        else:
-            verify_cmd = VERIFY_CMD_LINUX.format(file_name_current, file_name_next, file_parent_dir, ROOT_DIR_LINUX)
+        verify_cmd = self.verify_cmd.format(file_name_current, file_name_next, file_parent_dir, ROOT_DIR)
         # print(verify_cmd)
-        verify_result_str = RunCommand(verify_cmd)
+        verify_result_str = run_command(verify_cmd)
         # print(verify_result_str)
-        if is_int(verify_result_str):
+        try:
             verify_result = int(verify_result_str)
-            if verify_result != 0:
-                if self.is_windows:
-                    convert_cmd = CONVERT_CMD_WINDOWS.format(file_name_current, file_name_next, file_parent_dir, ROOT_DIR_WINDOWS)
-                else:
-                    convert_cmd = CONVERT_CMD_LINUX.format(file_name_current, file_name_next, file_parent_dir, ROOT_DIR_LINUX)
-                # print(convert_cmd)
-                convert_result_str = RunCommand(convert_cmd)
+        except ValueError:
+            verify_result = 0
+        if verify_result != 0:
+            convert_cmd = self.convert_cmd.format(file_name_current, file_name_next, file_parent_dir, ROOT_DIR)
+            print(convert_cmd)
+            run_command(convert_cmd)
 
-
-    def ScanFiles(self):
-        if self.is_windows:
-            root_dir = ROOT_DIR_WINDOWS
-        else:
-            root_dir = ROOT_DIR_LINUX
-
-        if not os.path.isdir(root_dir):
-            print('No Valid Root Dir ->', root_dir)
-            return False
-
+    def scan_files(self):
         some_files_match = False
-        for sub_dir, dirs, files in os.walk(root_dir):
+        for sub_dir, dirs, files in os.walk(ROOT_DIR):
             for file in files:
-                file_path = sub_dir + os.sep + file
+                file_path = os.path.join(sub_dir, file)
+                file_path = os.path.normpath(file_path)
+                file_path = os.path.normcase(file_path)
 
                 for extension in FILE_EXTENSIONS:
-                    if file_path.endswith(extension):
+                    if file_path.lower().endswith(extension):
                         some_files_match = True
-                        self.FileAction(extension, file_path)
+                        self.file_action(extension, Path(file_path))
                         break
 
         if not some_files_match:
@@ -154,17 +147,41 @@ class VideoConverter:
 
 
 if __name__ == '__main__':
-    CONVERT_IGNORE_FOLDER = CONVERT_IGNORE_FOLDER.replace(os.path.sep, '')
+
+    args = argv[1:]
+    for argi in range(len(args)):
+        # Needs to be just every periodic arg to check
+        if argi % 2 == 0:
+            arg_lower = args[argi].lower()
+            for arg in ROOT_ARG_SYN:
+                if arg_lower == args[argi]:
+                    path = args[argi + 1].replace('\'', '').replace('"', '')
+                    if os.path.isdir(path):
+                        ROOT_DIR = path
+
+            for arg in TICK_ARG_SYN:
+                if arg_lower == args[argi]:
+                    try:
+                        TICK_INTERVAL = float(args[argi + 1])
+                    except ValueError:
+                        pass
+
+    ROOT_DIR = os.path.normpath(ROOT_DIR)
+    ROOT_DIR = os.path.normcase(ROOT_DIR)
+
+    print('Using root dir ->', ROOT_DIR)
+    print('Using Tick interval ->', TICK_INTERVAL, 'Seconds')
+
+    if not os.path.isdir(ROOT_DIR):
+        print('No Valid Root Dir ->', ROOT_DIR)
+
     converter = VideoConverter()
-    if converter.is_windows:
-        ignore_path = os.path.join(ROOT_DIR_WINDOWS, CONVERT_IGNORE_FOLDER)
-    else:
-        ignore_path = os.path.join(ROOT_DIR_LINUX, CONVERT_IGNORE_FOLDER)
-    if not os.path.isdir(ignore_path):
-        os.mkdir(ignore_path)
     try:
         while True:
-            scan_valid = converter.ScanFiles()
-            sleep(3)
+            scan_valid = converter.scan_files()
+            if TICK_INTERVAL > 0:
+                sleep(TICK_INTERVAL)
+            elif TICK_INTERVAL < 0:
+                break
     except KeyboardInterrupt:
         pass
