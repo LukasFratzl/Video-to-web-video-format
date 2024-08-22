@@ -1,9 +1,7 @@
 import json
 import os
-from math import trunc
 from pathlib import Path
 from sys import argv
-from sys import platform
 from time import sleep
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -35,24 +33,16 @@ global video_converter
 
 
 def run_command(cmd):
-    if platform.startswith('win32'):
-        process = os.popen(cmd)
+    process = os.popen(cmd)
 
-        output = process.read()
-        process.close()
-        return output.strip()
+    output = process.read()
+    process.close()
 
-    else:
-        process = os.popen('bash -c \'{0}\''.format(cmd))
-
-        output = process.read()
-        process.close()
-        return output.strip()
+    return output.strip()
 
 
 class VideoConverter:
     def __init__(self, keep_files):
-        self.is_windows = platform.startswith('win32')
         self.ignore_path = os.path.join(ROOT_DIR, CONVERT_IGNORE_FOLDER)
         self.ignore_path = os.path.normpath(self.ignore_path)
         self.ignore_path = os.path.normcase(self.ignore_path)
@@ -78,14 +68,14 @@ class VideoConverter:
 
         if file_name_current == file_name_next:
             # Keep the original file is here not possible without creating a new file ... so it's not original anymore anyway
-            need_convert_but_keep = False
+            need_convert = False
             if self.keep_original_files:
                 if not self.video_has_nice_format(file_abs_path_next):
-                    need_convert_but_keep = True
+                    need_convert = True
             else:
-                need_convert_but_keep = True
+                need_convert = True
 
-            if need_convert_but_keep:
+            if need_convert:
                 file_abs_path_temp = os.path.join(file_parent_dir, 'Temp1234562' + file_name_next)
                 if not os.path.isfile(file_abs_path_temp):
                     os.rename(file_abs_path, file_abs_path_temp)
