@@ -3,9 +3,6 @@ import os
 from pathlib import Path
 from sys import argv
 from time import sleep
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-
 
 # CONFIG -> Nextcloud or basically any root folder where you store your files
 # this is the default dir if -r, --root is not defined
@@ -49,12 +46,19 @@ class VideoConverter:
         if not os.path.isdir(self.ignore_path):
             os.mkdir(self.ignore_path)
         self.keep_original_files = keep_files
+        self.files_mtimes = dict(file_path='', mtime=-1)
 
     def file_action(self, file_extension_current, file_path):
         if not os.path.isfile(file_path):
             return
 
         file_abs_path = file_path.absolute()
+        file_mtime = os.path.getmtime(file_path)
+        if file_abs_path in self.files_mtimes:
+            if self.files_mtimes[file_abs_path] == file_mtime:
+                return
+        self.files_mtimes[file_abs_path] = file_mtime
+
         if self.ignore_path in str(file_abs_path):
             return
 
@@ -99,17 +103,18 @@ class VideoConverter:
 
 
     def scan_files(self):
-        for sub_dir, dirs, files in os.walk(ROOT_DIR):
-            for file in files:
-                file_path = os.path.join(sub_dir, file)
-                file_path = os.path.normpath(file_path)
-                file_path = os.path.normcase(file_path)
-                path_lower = file_path.lower()
+        def recursive_scan(dir_path):
+            for path in os.scandir(dir_path):
+                if path.is_dir():
+                    recursive_scan(path.path)
+                else:
+                    path_lower = path.path.lower()
+                    for extension in FILE_EXTENSIONS:
+                        if path_lower.endswith(extension):
+                            self.file_action(extension, Path(path.path))
+                            break
 
-                for extension in FILE_EXTENSIONS:
-                    if path_lower.endswith(extension):
-                        self.file_action(extension, Path(file_path))
-                        break
+        recursive_scan(ROOT_DIR)
 
     # Returns true if the video has the correct format
     def video_has_nice_format(self, file_abs_path):
@@ -129,29 +134,7 @@ class VideoConverter:
         return False
 
 
-class FileHandler(FileSystemEventHandler):
-
-    @staticmethod
-    def on_any_event(event):
-        if event.is_directory:
-            return None
-
-        elif event.event_type == 'created':
-            path_lower = event.src_path.lower()
-            for extension in FILE_EXTENSIONS:
-                if path_lower.endswith(extension):
-                    video_converter.file_action(extension, Path(event.src_path))
-                    break
-        elif event.event_type == 'modified':
-            path_lower = event.src_path.lower()
-            for extension in FILE_EXTENSIONS:
-                if path_lower.endswith(extension):
-                    video_converter.file_action(extension, Path(event.src_path))
-                    break
-
-
 if __name__ == '__main__':
-
     args = argv[1:]
     if len(args) % 2 == 1:
         print('You called an arg but miss the value .. ')
@@ -200,14 +183,9 @@ if __name__ == '__main__':
     video_converter.scan_files()
 
     if run_once == 'false':
-        event_handler = FileHandler()
-        observer = Observer()
-
-        observer.schedule(event_handler, ROOT_DIR, recursive=True)
-        observer.start()
         try:
             while True:
+                video_converter.scan_files()
                 sleep(5)
         except KeyboardInterrupt:
-            observer.stop()
-        observer.join()
+            pass

@@ -5,18 +5,13 @@ You can run the script at startup or even schedule it with crontab and customize
 ### How to use it:
 - Linux Install:
   - Install Python
-  - This app requires `ffmpeg` and `pip install -r requirements.txt`
+  - This app requires `ffmpeg`
   - Open the Terminal
     ```shell
     # Install Python...
     python --version
     # Output
     # Python 3.12.4
-    
-    # and install the requirements, note: you may need cd 'Path/To/Repo/' first...
-    pip install -r requirements.txt
-    # If you need a specific pip install, this installs the requirements for python v3.6
-    # python3.6 -m pip install -r requirements.txt
     
     sudo apt update
     
@@ -28,7 +23,7 @@ You can run the script at startup or even schedule it with crontab and customize
     ```
 - Windows Install: ( Right now under construction )
   - Install Python
-  - This app requires `ffmpeg` and `pip install -r requirements.txt`
+  - This app requires `ffmpeg`
   - Open PowerShell
     ```shell
     # Install Python...
@@ -36,24 +31,19 @@ You can run the script at startup or even schedule it with crontab and customize
     # Output
     # Python 3.12.4
     
-    # and install the requirements, note: you may need cd 'Path/To/Repo/' first...
-    pip install -r requirements.txt
-    # If you need a specific pip install, this installs the requirements for python v3.6
-    # python3.6 -m pip install -r requirements.txt
-    
     # Install ffmpeg on windows the correct way so the next command gives a valid version
     ffmpeg -version
     # Output
     # ffmpeg version 7.0.2-essentials_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers
     # built with gcc 13.2.0 (Rev5, Built by MSYS2 project)
     ```
-- Download the Repo
+- Download `main.py`
 - Open `main.py` and edit stuff like the converter settings etc
 - Run it with `python '/Path/To/main.py' --root '/Path/To/Video/Folder/' --keep true`
 
 ### Development:
 - python 3.12
-- install `requirements.txt` but please don't add more packages...
+- this should be a native python script so don't add packages
 - please don't ask for fixing bugs and please don't send pull requests, this repo is just a container
 
 ### API:
