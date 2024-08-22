@@ -49,7 +49,7 @@ You can run the script at startup or even schedule it with crontab and customize
     ```
 - Download the Repo
 - Open `main.py` and edit stuff like the converter settings etc
-- Run it with `python '/Path/To/main.py' --root '/Path/To/Video/Folder/' --keep true'`
+- Run it with `python '/Path/To/main.py' --root '/Path/To/Video/Folder/' --keep true`
 
 ### Development:
 - python 3.12
