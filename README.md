@@ -21,7 +21,7 @@ You can run the script at startup or even schedule it with crontab and customize
     # ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers
     # built with gcc 13 (Ubuntu 13.2.0-23ubuntu3)
     ```
-- Windows Install: ( Right now under construction )
+- Windows Install:
   - Install Python
   - This app requires `ffmpeg`
   - Open PowerShell
