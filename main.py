@@ -38,11 +38,16 @@ def run_command(cmd):
     return output.strip()
 
 
+def normalize_path(path_str):
+    path_str = os.path.normpath(path_str)
+    path_str = os.path.normcase(path_str)
+    return path_str
+
+
 class VideoConverter:
     def __init__(self, keep_files):
-        self.ignore_path = os.path.join(ROOT_DIR, CONVERT_IGNORE_FOLDER)
-        self.ignore_path = os.path.normpath(self.ignore_path)
-        self.ignore_path = os.path.normcase(self.ignore_path)
+        self.ignore_path_folder = normalize_path(CONVERT_IGNORE_FOLDER)
+        self.ignore_path = normalize_path(os.path.join(ROOT_DIR, CONVERT_IGNORE_FOLDER))
         if not os.path.isdir(self.ignore_path):
             os.mkdir(self.ignore_path)
         self.keep_original_files = keep_files
@@ -162,8 +167,7 @@ if __name__ == '__main__':
                     if keep_files_ == 'true' or keep_files_ == 'false':
                         keep_files = keep_files_
 
-    ROOT_DIR = os.path.normpath(ROOT_DIR)
-    ROOT_DIR = os.path.normcase(ROOT_DIR)
+    ROOT_DIR = normalize_path(ROOT_DIR)
 
     print('Using root dir ->', ROOT_DIR)
     print('Running once ->', run_once)
