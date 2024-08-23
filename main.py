@@ -46,7 +46,7 @@ def normalize_path(path_str):
 
 class VideoConverter:
     def __init__(self, keep_files):
-        self.ignore_path_folder = normalize_path(CONVERT_IGNORE_FOLDER)
+        self.ignore_path_folder = normalize_path('/' + CONVERT_IGNORE_FOLDER + '/')
         self.ignore_path = normalize_path(os.path.join(ROOT_DIR, CONVERT_IGNORE_FOLDER))
         if not os.path.isdir(self.ignore_path):
             os.mkdir(self.ignore_path)
@@ -64,7 +64,8 @@ class VideoConverter:
                 return
         self.files_mtimes[file_abs_path] = file_mtime
 
-        if self.ignore_path in str(file_abs_path):
+        # This does not work with folders because of '/' + name + '/', but this function handles files only anyway...
+        if self.ignore_path_folder in str(file_abs_path):
             return
 
         if self.video_has_nice_format(file_abs_path):

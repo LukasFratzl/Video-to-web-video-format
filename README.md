@@ -48,7 +48,7 @@ You can run the script at startup or even schedule it with crontab and customize
 
 ### API:
 - Root Arg: `-r <Path>`, `--root <Path>` (Required)
-  - Uses the defined Path as root directory of your sync folder, all videos inside this root folder getting converted, except for the videos in folder `'/Path/To/Root/Folder/Ignore File Convert/'`
+  - Uses the defined Path as root directory of your sync folder, all videos inside this root folder getting converted, except for the videos in folders which are names exactly `Ignore File Convert` for example: `'/Path/To/Root/Folder/.../Ignore File Convert/'` the default ignore folder name can be edited in `main.py`
 - Run once Arg: `-o <Bool>`, `--once <Bool>` (Optional) -> default (`false`)
   - Force the app to run only once and exit after the scan of the videos is done, otherwise it keeps running and looking for future changes
 - Keep original video Arg: `-k <Bool>`, `--keep <Bool>` (Optional) -> default (`true`)
