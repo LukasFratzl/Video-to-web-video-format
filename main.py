@@ -14,7 +14,8 @@ VERIFY_CMD_TAGS = 'ffprobe -v quiet -of json -show_entries format_tags "{0}"'
 VERIFY_CMD_CODEC = 'ffprobe -v quiet -select_streams v:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 "{0}"'
 CONVERT_CMD_MP42 = 'ffmpeg -i "{0}" -y -brand mp42 -vcodec libx264 -acodec aac -filter:v fps=60 "{1}"'
 
-CONVERT_IGNORE_FOLDER = 'Ignore File Convert'  # In this case it's '/ROOT_DIR/Ignore File Convert'
+CONVERT_IGNORE_FOLDERS = ['Ignore File Convert',
+                          'SofortUpload']  # In this case it's '/ROOT_DIR/.../Ignore File Convert'
 
 # *.mkv *.webm *.flv *.vob *.ogg *.ogv *.drc *.mng *.avi *.mov *.qt *.wmv *.yuv *.rm *.rmvb *.asf *.amv *.mp4 *.m4v *.mp *.svi *.3gp *.f4v
 FILE_EXTENSIONS = ['.mkv', '.webm', '.flv', '.vob', '.ogg', '.ogv', '.drc', '.mng', '.avi', '.mov', '.qt',
@@ -46,10 +47,9 @@ def normalize_path(path_str):
 
 class VideoConverter:
     def __init__(self, keep_files):
-        self.ignore_path_folder = normalize_path('/' + CONVERT_IGNORE_FOLDER + '/')
-        self.ignore_path = normalize_path(os.path.join(ROOT_DIR, CONVERT_IGNORE_FOLDER))
-        if not os.path.isdir(self.ignore_path):
-            os.mkdir(self.ignore_path)
+        self.ignore_path_folders = []
+        for folder in CONVERT_IGNORE_FOLDERS:
+            self.ignore_path_folders.append(normalize_path('/' + folder + '/'))
         self.keep_original_files = keep_files
         self.files_mtimes = dict(file_path='', mtime=-1)
 
@@ -57,16 +57,16 @@ class VideoConverter:
         if not os.path.isfile(file_path):
             return
 
-        file_abs_path = file_path.absolute()
+        file_abs_path = str(file_path.absolute())
         file_mtime = os.path.getmtime(file_path)
         if file_abs_path in self.files_mtimes:
             if self.files_mtimes[file_abs_path] == file_mtime:
                 return
         self.files_mtimes[file_abs_path] = file_mtime
 
-        # This does not work with folders because of '/' + name + '/', but this function handles files only anyway...
-        if self.ignore_path_folder in str(file_abs_path):
-            return
+        for folder in self.ignore_path_folders:
+            if folder in file_abs_path:
+                return
 
         if self.video_has_nice_format(file_abs_path):
             return
