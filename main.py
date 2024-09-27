@@ -57,7 +57,7 @@ class VideoConverter:
         if not os.path.isfile(file_path):
             return
 
-        file_abs_path = str(file_path.absolute())
+        file_abs_path = str(normalize_path(file_path.absolute()))
         file_mtime = os.path.getmtime(file_path)
         if file_abs_path in self.files_mtimes:
             if self.files_mtimes[file_abs_path] == file_mtime:
