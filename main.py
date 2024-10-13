@@ -12,7 +12,10 @@ ROOT_DIR = '/No/Valid/Path/'
 # {1} -> Target File Path
 VERIFY_CMD_TAGS = 'ffprobe -v quiet -of json -show_entries format_tags "{0}"'
 VERIFY_CMD_CODEC = 'ffprobe -v quiet -select_streams v:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 "{0}"'
+VERIFY_CMD_BITRATE = 'ffprobe -v quiet -select_streams v:0 -show_entries stream=bit_rate -of default=noprint_wrappers=1:nokey=1 "{0}"'
+
 CONVERT_CMD_MP42 = 'ffmpeg -i "{0}" -y -brand mp42 -vcodec libx264 -acodec aac -filter:v fps=60 "{1}"'
+CONVERT_CMD_MP42_BITRATE = 'ffmpeg -i "{0}" -y -brand mp42 -vcodec libx264 -acodec aac -filter:v fps=60 -b:v {2} "{1}"'
 
 CONVERT_IGNORE_FOLDERS = ['Ignore File Convert',
                           'SofortUpload']  # In this case it's '/ROOT_DIR/.../Ignore File Convert'
@@ -26,6 +29,7 @@ FILE_EXTENSION_WANTED = '.mp4'
 ROOT_ARG_SYN = ['-r', '--root']
 ONCE_ARG_SYN = ['-o', '--once']
 KEEP_ARG_SYN = ['-k', '--keep']
+BIT_ARG_SYN = ['-b', '--bitrate']
 
 global video_converter
 
@@ -46,12 +50,13 @@ def normalize_path(path_str):
 
 
 class VideoConverter:
-    def __init__(self, keep_files):
+    def __init__(self, keep_files, bitrate):
         self.ignore_path_folders = []
         for folder in CONVERT_IGNORE_FOLDERS:
             self.ignore_path_folders.append(normalize_path('/' + folder + '/'))
         self.keep_original_files = keep_files
         self.files_mtimes = dict(file_path='', mtime=-1)
+        self.bitrate = bitrate
 
     def file_action(self, file_extension_current, file_path):
         if not os.path.isfile(file_path):
@@ -89,7 +94,10 @@ class VideoConverter:
                 file_abs_path_temp = os.path.join(file_parent_dir, 'Temp1234562' + file_name_next)
                 if not os.path.isfile(file_abs_path_temp):
                     os.rename(file_abs_path, file_abs_path_temp)
-                convert_cmd = CONVERT_CMD_MP42.format(file_abs_path_temp, file_abs_path_next)
+                if self.bitrate > -1:
+                    convert_cmd = CONVERT_CMD_MP42_BITRATE.format(file_abs_path_temp, file_abs_path_next, self.bitrate)
+                else:
+                    convert_cmd = CONVERT_CMD_MP42.format(file_abs_path_temp, file_abs_path_next)
                 run_command(convert_cmd)
                 os.remove(file_abs_path_temp)
         else:
@@ -102,7 +110,10 @@ class VideoConverter:
                     need_convert_but_keep = True
 
             if not self.keep_original_files or need_convert_but_keep:
-                convert_cmd = CONVERT_CMD_MP42.format(file_abs_path, file_abs_path_next)
+                if self.bitrate > -1:
+                    convert_cmd = CONVERT_CMD_MP42_BITRATE.format(file_abs_path, file_abs_path_next, self.bitrate)
+                else:
+                    convert_cmd = CONVERT_CMD_MP42.format(file_abs_path, file_abs_path_next)
                 run_command(convert_cmd)
                 if not need_convert_but_keep:
                     os.remove(file_abs_path)
@@ -135,8 +146,19 @@ class VideoConverter:
             video_codec = str(run_command(VERIFY_CMD_CODEC.format(file_abs_path)))
         except ValueError:
             video_codec = ''
-        if video_brand.__eq__('mp42') and video_codec.__eq__('h264'):
-            return True
+
+        if self.bitrate > -1:
+            try:
+                video_bits = int(str(run_command(VERIFY_CMD_BITRATE.format(file_abs_path))))
+            except ValueError:
+                video_bits = self.bitrate
+
+            if video_brand.__eq__('mp42') and video_codec.__eq__('h264') and video_bits < self.bitrate + 500000:
+                return True
+        else:
+            if video_brand.__eq__('mp42') and video_codec.__eq__('h264'):
+                return True
+
         return False
 
 
@@ -146,6 +168,7 @@ if __name__ == '__main__':
         print('You called an arg but miss the value .. ')
     run_once = 'false'
     keep_files = 'true'
+    bitrate = -1
     for argi in range(len(args)):
         # Needs to be just every periodic arg to check
         if argi % 2 == 0:
@@ -168,11 +191,21 @@ if __name__ == '__main__':
                     if keep_files_ == 'true' or keep_files_ == 'false':
                         keep_files = keep_files_
 
+            for arg in BIT_ARG_SYN:
+                if arg_lower == arg:
+                    bit = args[argi + 1].lower()
+                    try:
+                        bit_num = int(bit)
+                        bitrate = bit_num
+                    except ValueError:
+                        pass
+
     ROOT_DIR = normalize_path(ROOT_DIR)
 
     print('Using root dir ->', ROOT_DIR)
     print('Running once ->', run_once)
     print('Keep original files ->', keep_files)
+    print('With Bitrate ->', bitrate)
 
     if not os.path.isdir(ROOT_DIR):
         print('No Valid Root Directory ... Please check your root path argument..., sometimes you may need to add "" or \'\' like "/Path/"')
@@ -183,7 +216,7 @@ if __name__ == '__main__':
         keep_files = True
     elif keep_files == 'false':
         keep_files = False
-    video_converter = VideoConverter(keep_files)
+    video_converter = VideoConverter(keep_files, bitrate)
     # Comment out if you don't want to convert videos on start of the app...
     video_converter.scan_files()
 

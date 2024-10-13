@@ -53,3 +53,5 @@ You can run the script at startup or even schedule it with crontab and customize
   - Force the app to run only once and exit after the scan of the videos is done, otherwise it keeps running and looking for future changes
 - Keep original video Arg: `-k <Bool>`, `--keep <Bool>` (Optional) -> default (`true`)
   - Keeps the original video if set to `true`, if `false` it converts the video in place so there is only the optimized version left, by default it is set to `true` and keeps all original videos 
+- Change Bitrate Arg: `-b <Int>`, `--bitrate <Int>` (Optional) -> default (`-1`)
+  - Changes the Bitrate of the Video, example: `--bitrate 10000000` <- 10 MBits

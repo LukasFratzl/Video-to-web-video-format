@@ -1,0 +1,1 @@
+python "C:\Users\Lukas-Work-PC\Documents\Video-to-web-video-format\main.py" --root "%~dp0\" --keep true --bitrate 8000000 --once true
