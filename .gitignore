@@ -8,3 +8,6 @@ __pycache__/
 .vscode/
 .idea/
 *.sublime-*
+video-converter.spec
+
+build/
